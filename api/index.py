@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
@@ -12,21 +12,23 @@ app = FastAPI()
 # CORS so the frontend can talk to backend
 # Allow specific origins from env, or allow all in development
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+
 if allowed_origins_env == "*":
-    # Allow all origins
+    # Allow all origins - use explicit list for better compatibility
+    # For production, you should set specific origins in ALLOWED_ORIGINS env var
     allowed_origins = ["*"]
     allow_creds = False
 else:
     # Split comma-separated origins
-    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
     allow_creds = True
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=allow_creds,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
     expose_headers=["*"],
     max_age=3600,
 )
@@ -44,21 +46,34 @@ def root():
 def health():
     return {"status": "healthy", "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))}
 
+@app.options("/api/chat")
+async def chat_options():
+    """Handle CORS preflight requests"""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
+
 @app.post("/api/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, response: Response):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
     
     try:
         user_message = request.message
-        response = client.chat.completions.create(
+        openai_response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a supportive mental coach."},
                 {"role": "user", "content": user_message}
             ]
         )
-        return {"reply": response.choices[0].message.content}
+        return {"reply": openai_response.choices[0].message.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
 

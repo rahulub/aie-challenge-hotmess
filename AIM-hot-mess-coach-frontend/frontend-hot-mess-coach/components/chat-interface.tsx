@@ -28,7 +28,7 @@ const getBackendUrl = () => {
   
   if (typeof window !== "undefined") {
     // If on localhost, use local backend
-    if (window.location.hostname === "localhost") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
       return "http://localhost:8000/api/chat"
     }
     // Otherwise use relative URL (same domain) - works for same-domain deployments
@@ -38,8 +38,6 @@ const getBackendUrl = () => {
   // Fallback for SSR
   return "/api/chat"
 }
-
-const BACKEND_URL = getBackendUrl()
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
@@ -77,7 +75,10 @@ export function ChatInterface() {
     setError(null)
 
     try {
-      const response = await fetch(BACKEND_URL, {
+      const backendUrl = getBackendUrl()
+      console.log("Calling backend at:", backendUrl)
+      
+      const response = await fetch(backendUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,12 +106,14 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, aiMessage])
     } catch (err) {
+      const backendUrl = getBackendUrl()
       console.error("Error calling backend:", err)
-      console.error("Backend URL:", BACKEND_URL)
+      console.error("Backend URL attempted:", backendUrl)
+      console.error("NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL)
       
       let errorMessage = "Something went wrong!"
       if (err instanceof TypeError && err.message.includes("fetch")) {
-        errorMessage = "Failed to connect to server. Please check your connection."
+        errorMessage = `Failed to connect to server at ${backendUrl}. Please check your connection and ensure NEXT_PUBLIC_API_URL is set correctly.`
       } else if (err instanceof Error) {
         errorMessage = err.message
       }
