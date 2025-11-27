@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -46,32 +46,6 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy", "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))}
-
-@app.options("/api/chat")
-async def chat_options(request):
-    """Handle CORS preflight requests"""
-    # Get the origin from the request
-    origin = request.headers.get("Origin", "")
-    
-    # Determine allowed origin based on ALLOWED_ORIGINS env var
-    if allowed_origins_env == "*":
-        allow_origin = "*"
-    elif origin in allowed_origins:
-        allow_origin = origin
-    else:
-        # If origin not in allowed list, don't allow (but this shouldn't happen if middleware is working)
-        allow_origin = allowed_origins[0] if allowed_origins else "*"
-    
-    return Response(
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": allow_origin,
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
-            "Access-Control-Max-Age": "3600",
-            "Access-Control-Allow-Credentials": "true" if allow_creds else "false",
-        }
-    )
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
