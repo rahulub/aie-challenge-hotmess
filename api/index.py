@@ -10,14 +10,24 @@ load_dotenv()
 app = FastAPI()
 
 # CORS so the frontend can talk to backend
+# Allow specific origins from env, or allow all in development
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins != "*":
+    # Split comma-separated origins
+    allowed_origins = [origin.strip() for origin in allowed_origins.split(",")]
+    allow_creds = True
+else:
+    allowed_origins = ["*"]
+    allow_creds = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=False,  # Must be False when allow_origins is ["*"]
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all headers
-    max_age=3600,  # Cache preflight requests for 1 hour
+    allow_origins=allowed_origins,
+    allow_credentials=allow_creds,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -27,6 +37,11 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def root():
+    return {"status": "ok"}
+
+@app.options("/api/chat")
+async def chat_options():
+    """Handle CORS preflight requests"""
     return {"status": "ok"}
 
 @app.post("/api/chat")
