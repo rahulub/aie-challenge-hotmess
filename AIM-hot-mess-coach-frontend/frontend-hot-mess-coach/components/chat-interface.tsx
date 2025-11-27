@@ -16,12 +16,26 @@ interface Message {
   timestamp: Date
 }
 
-// Use environment variable or default to local development
-const BACKEND_URL = 
-  process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== "undefined" && window.location.hostname === "localhost" 
-    ? "http://localhost:8000/api/chat" 
-    : "https://aie-challenge-hotmess-3w95h3dt2-rahul-bs-projects-69836e3e.vercel.app/api/chat")
+// Get backend URL - use environment variable, relative URL for same domain, or fallback
+const getBackendUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  if (typeof window !== "undefined") {
+    // If on localhost, use local backend
+    if (window.location.hostname === "localhost") {
+      return "http://localhost:8000/api/chat"
+    }
+    // Otherwise use relative URL (same domain) - works for Vercel deployments
+    return "/api/chat"
+  }
+  
+  // Fallback for SSR
+  return "/api/chat"
+}
+
+const BACKEND_URL = getBackendUrl()
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
