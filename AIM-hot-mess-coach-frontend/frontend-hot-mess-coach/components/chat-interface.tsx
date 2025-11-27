@@ -16,10 +16,14 @@ interface Message {
   timestamp: Date
 }
 
-// Get backend URL - use environment variable, relative URL for same domain, or fallback
+// Get backend URL - use base URL from env and append /api/chat
 const getBackendUrl = () => {
+  // If base URL is provided, append /api/chat to it
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL.trim()
+    // Remove trailing slash if present, then append /api/chat
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl
+    return `${cleanBaseUrl}/api/chat`
   }
   
   if (typeof window !== "undefined") {
@@ -27,7 +31,7 @@ const getBackendUrl = () => {
     if (window.location.hostname === "localhost") {
       return "http://localhost:8000/api/chat"
     }
-    // Otherwise use relative URL (same domain) - works for Vercel deployments
+    // Otherwise use relative URL (same domain) - works for same-domain deployments
     return "/api/chat"
   }
   
@@ -82,10 +86,15 @@ export function ChatInterface() {
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to get response: ${response.statusText}`)
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Server error: ${response.status} ${errorText}`)
       }
 
       const data = await response.json()
+
+      if (!data.reply) {
+        throw new Error("Invalid response from server")
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -96,16 +105,25 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, aiMessage])
     } catch (err) {
-      console.error("[v0] Error calling backend:", err)
-      setError(err instanceof Error ? err.message : "Something went wrong!")
+      console.error("Error calling backend:", err)
+      console.error("Backend URL:", BACKEND_URL)
+      
+      let errorMessage = "Something went wrong!"
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        errorMessage = "Failed to connect to server. Please check your connection."
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
 
-      const errorMessage: Message = {
+      const errorAiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: "Oops! 🍂 Looks like I got lost in the cranberry sauce. Can you try that again?",
         sender: "ai",
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages((prev) => [...prev, errorAiMessage])
     } finally {
       setIsLoading(false)
     }

@@ -38,7 +38,11 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Hot Mess Coach API is running"}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))}
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
