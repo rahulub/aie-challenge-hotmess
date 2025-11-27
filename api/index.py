@@ -11,14 +11,15 @@ app = FastAPI()
 
 # CORS so the frontend can talk to backend
 # Allow specific origins from env, or allow all in development
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
-if allowed_origins != "*":
-    # Split comma-separated origins
-    allowed_origins = [origin.strip() for origin in allowed_origins.split(",")]
-    allow_creds = True
-else:
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins_env == "*":
+    # Allow all origins
     allowed_origins = ["*"]
     allow_creds = False
+else:
+    # Split comma-separated origins
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+    allow_creds = True
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,11 +38,6 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "ok"}
-
-@app.options("/api/chat")
-async def chat_options():
-    """Handle CORS preflight requests"""
     return {"status": "ok"}
 
 @app.post("/api/chat")
