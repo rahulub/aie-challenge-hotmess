@@ -19,11 +19,18 @@ interface Message {
 // Get backend URL - use base URL from env and append /api/chat
 const getBackendUrl = () => {
   // If base URL is provided, append /api/chat to it
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL.trim()
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl) {
+    const baseUrl = envUrl.trim()
     // Remove trailing slash if present, then append /api/chat
     const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl
-    return `${cleanBaseUrl}/api/chat`
+    const fullUrl = `${cleanBaseUrl}/api/chat`
+    // Log in development to help debug
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      console.log("Backend URL from env:", fullUrl)
+      console.log("NEXT_PUBLIC_API_URL:", envUrl)
+    }
+    return fullUrl
   }
   
   if (typeof window !== "undefined") {

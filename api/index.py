@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import os
@@ -60,7 +61,7 @@ async def chat_options():
     )
 
 @app.post("/api/chat")
-def chat(request: ChatRequest, response: Response):
+def chat(request: ChatRequest):
     if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
     
