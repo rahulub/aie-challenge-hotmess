@@ -17,28 +17,33 @@ interface Message {
 }
 
 // Get backend URL - use base URL from env and append /api/chat
+// Frontend and backend are deployed separately, so NEXT_PUBLIC_API_URL should point to backend
 const getBackendUrl = () => {
-  // If base URL is provided, append /api/chat to it
+  // Priority 1: Use NEXT_PUBLIC_API_URL if set (for separate deployments)
   const envUrl = process.env.NEXT_PUBLIC_API_URL
   if (envUrl) {
     const baseUrl = envUrl.trim()
     // Remove trailing slash if present, then append /api/chat
     const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl
     const fullUrl = `${cleanBaseUrl}/api/chat`
-    // Log in development to help debug
-    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-      console.log("Backend URL from env:", fullUrl)
-      console.log("NEXT_PUBLIC_API_URL:", envUrl)
+    // Log to help debug
+    if (typeof window !== "undefined") {
+      console.log("Backend URL from NEXT_PUBLIC_API_URL:", fullUrl)
     }
     return fullUrl
   }
   
+  // Warn if NEXT_PUBLIC_API_URL is not set in production
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
+    console.warn("NEXT_PUBLIC_API_URL is not set. Frontend and backend are deployed separately, so this environment variable must be configured.")
+  }
+  
   if (typeof window !== "undefined") {
-    // If on localhost, use local backend
+    // Priority 2: If on localhost, use local backend
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
       return "http://localhost:8000/api/chat"
     }
-    // Otherwise use relative URL (same domain) - works for same-domain deployments
+    // Priority 3: Fallback to relative URL (for same-domain deployments)
     return "/api/chat"
   }
   
@@ -118,13 +123,22 @@ export function ChatInterface() {
       console.error("Backend URL attempted:", backendUrl)
       console.error("NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL)
       
-      let errorMessage = "Something went wrong!"
+      let errorMessage: string | null = null
       if (err instanceof TypeError && err.message.includes("fetch")) {
-        errorMessage = `Failed to connect to server at ${backendUrl}. Please check your connection and ensure NEXT_PUBLIC_API_URL is set correctly.`
+        // Network/CORS error - show user-friendly message
+        errorMessage = "Unable to connect to the server. Please check your internet connection and try again."
       } else if (err instanceof Error) {
-        errorMessage = err.message
+        // Other errors - show the error message but make it more user-friendly
+        if (err.message.includes("Server error")) {
+          errorMessage = "The server encountered an error. Please try again in a moment."
+        } else if (err.message.includes("Invalid response")) {
+          errorMessage = "Received an unexpected response from the server. Please try again."
+        } else {
+          errorMessage = err.message
+        }
       }
       
+      // Show error message for debugging, but keep it user-friendly
       setError(errorMessage)
 
       const errorAiMessage: Message = {
