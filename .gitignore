@@ -1,2 +1,32 @@
 .vercel
 .env
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js
+.next/
+**/.next/
+out/
+**/out/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# OS files
+.DS_Store
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
