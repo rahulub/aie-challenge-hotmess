@@ -11,27 +11,11 @@ load_dotenv()
 app = FastAPI()
 
 # CORS so the frontend can talk to backend
-# Allow specific origins from env, or allow all in development
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
-
-if allowed_origins_env == "*":
-    # Allow all origins - use explicit list for better compatibility
-    # For production, you should set specific origins in ALLOWED_ORIGINS env var
-    allowed_origins = ["*"]
-    allow_creds = False
-else:
-    # Split comma-separated origins
-    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
-    allow_creds = True
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=allow_creds,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
-    expose_headers=["*"],
-    max_age=3600,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
